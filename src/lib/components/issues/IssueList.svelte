@@ -110,7 +110,7 @@
       />
 
       <div class="relative w-48">
-        <Search class="w-3.5 h-3.5 absolute left-2.5 top-2 text-gh-muted" />
+        <Search class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gh-muted pointer-events-none" />
         <input
           bind:this={searchRef}
           type="text"
