@@ -10,10 +10,11 @@ An offline, lightweight desktop issue tracker with a GitHub-inspired workflow, M
 </div>
 
 ## Screenshots
+
 | Issues List & Filters | Issue Detail & Markdown Editor |
 | :---: | :---: |
-| <img src="screenshots/issue-list.png" alt="Issues List" width="100%"> | <img src="screenshots/issue-detail.png" alt="Issue Detail" width="100%"> |
-| **Timeline & Edit History** | **Labels & Projects Management** |
+| <img src="screenshots/issue-list.png" alt="Issues List" width="100%"> | <img src="screenshots/issue-detail.png" alt="Issue Detail" width="49%"> <img src="screenshots/markdown-editor.png" alt="Markdown Editor" width="49%"> |
+| **Timeline & Edit History** | **Labels** |
 | <img src="screenshots/timeline.png" alt="Timeline History" width="49%"> <img src="screenshots/diff-view.png" alt="Diff View" width="49%"> | <img src="screenshots/labels.png" alt="Labels Management" width="100%"> |
 
 ## Features
