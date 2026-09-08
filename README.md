@@ -25,6 +25,14 @@ An offline, lightweight desktop issue tracker with a GitHub-inspired workflow, M
 - **Markdown Editor**: typical markdown workflow, syntax toolbar, and standard editing shortcuts.
 - **Autostart (optional)**: run at Windows startup and minimize directly to system tray.
 - **Keyboard-First Workflow**: fast navigation, quick-close shortcuts, and fuzzy search access.
+
+## Download/Install
+
+1. Navigate to [Releases](https://github.com/animgraphlabgames/Local-Git-Issues/releases) page.
+2. Select latest release.
+3. Download portable `.exe` file and run.
+
+
 ## Shortcuts
 
 | Shortcut | Action |
