@@ -27,6 +27,12 @@ An offline, lightweight desktop issue tracker with a GitHub-inspired workflow, M
 - **Autostart (optional)**: run at Windows startup and minimize directly to system tray.
 - **Keyboard-First Workflow**: fast navigation, quick-close shortcuts, and fuzzy search access.
 
+## Lacking features (as for now, out of the box)
+
+- repository linking
+- collaboration
+- cloud sync
+
 ## Download/Install
 
 1. Navigate to [Releases](https://github.com/animgraphlabgames/Local-Git-Issues/releases) page.
