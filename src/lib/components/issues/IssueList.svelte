@@ -23,9 +23,19 @@
     highlightedIndex?: number;
   } = $props();
 
-  let search = $state('');
-  let selectedLabelFilters = $state<number[]>([]);
-  let selectedProjectFilters = $state<number[]>([]);
+  const saved = typeof window !== 'undefined'
+    ? (() => {
+        try {
+          return JSON.parse(localStorage.getItem('local_issues_filters') || '{}');
+        } catch {
+          return {};
+        }
+      })()
+    : {};
+
+  let search = $state<string>(saved.search ?? '');
+  let selectedLabelFilters = $state<number[]>(saved.labels ?? []);
+  let selectedProjectFilters = $state<number[]>(saved.projects ?? []);
 
   let openCount = $derived(issues.filter((i) => i.status === 'open').length);
   let closedCount = $derived(issues.filter((i) => i.status === 'closed').length);
@@ -63,9 +73,25 @@
   );
 
   $effect(() => {
-    if (highlightedIndex >= filteredIssues.length) {
-      highlightedIndex = Math.max(0, filteredIssues.length - 1);
+    if (labels.length > 0 && selectedLabelFilters.some((id) => !labels.some((l) => l.id === id))) {
+      selectedLabelFilters = selectedLabelFilters.filter((id) => labels.some((l) => l.id === id));
     }
+    if (projects.length > 0 && selectedProjectFilters.some((id) => !projects.some((p) => p.id === id))) {
+      selectedProjectFilters = selectedProjectFilters.filter((id) => projects.some((p) => p.id === id));
+    }
+    localStorage.setItem(
+      'local_issues_filters',
+      JSON.stringify({
+        tab: filterTab,
+        search,
+        labels: selectedLabelFilters,
+        projects: selectedProjectFilters
+      })
+    );
+  });
+
+  $effect(() => {
+    if (highlightedIndex >= filteredIssues.length) { highlightedIndex = Math.max(0, filteredIssues.length - 1); }
   });
 </script>
 

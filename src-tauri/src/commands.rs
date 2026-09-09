@@ -30,6 +30,24 @@ fn parse_id_vec(vals: Vec<serde_json::Value>) -> Vec<i64> {
         .collect()
 }
 
+fn body_references_issue(body: &str, target_id: i64) -> bool {
+    let needle = format!("#{}", target_id);
+    let bytes = body.as_bytes();
+    let needle_bytes = needle.as_bytes();
+    let mut pos = 0;
+    while let Some(idx) = body[pos..].find(&needle) {
+        let abs_idx = pos + idx;
+        let before_ok = abs_idx == 0 || !bytes[abs_idx - 1].is_ascii_alphanumeric();
+        let after_idx = abs_idx + needle_bytes.len();
+        let after_ok = after_idx >= bytes.len() || !bytes[after_idx].is_ascii_digit();
+        if before_ok && after_ok {
+            return true;
+        }
+        pos = abs_idx + needle_bytes.len();
+    }
+    false
+}
+
 fn log_event(
     conn: &rusqlite::Connection,
     issue_id: i64,
@@ -630,6 +648,41 @@ pub fn get_issue_events(issue_id: i64, state: State<DbState>) -> Result<Vec<Issu
     for ev in iter {
         events.push(ev.map_err(|e| e.to_string())?);
     }
+    drop(stmt);
+
+    let mut other_stmt = conn
+        .prepare("SELECT id, title, body, created_at FROM issues WHERE id != ?1")
+        .map_err(|e| e.to_string())?;
+
+    let other_issues = other_stmt
+        .query_map(params![issue_id], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok());
+
+    let mut synthetic_id = -100000;
+    for (source_id, source_title, source_body, source_created) in other_issues {
+        if body_references_issue(&source_body, issue_id) {
+            events.push(IssueEvent {
+                id: synthetic_id,
+                issue_id,
+                event_type: "cross_reference".into(),
+                old_value: Some(source_id.to_string()),
+                new_value: Some(source_title),
+                metadata: None,
+                created_at: source_created,
+            });
+            synthetic_id -= 1;
+        }
+    }
+
+    events.sort_by(|a, b| a.created_at.cmp(&b.created_at));
     Ok(events)
 }
 

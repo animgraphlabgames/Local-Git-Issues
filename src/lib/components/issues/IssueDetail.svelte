@@ -22,18 +22,22 @@
 
   let {
     issue,
+    issues = [],
     labels,
     projects,
     onToggleStatus,
     onUpdateMeta,
-    onUpdateContent
+    onUpdateContent,
+    onSelectIssue
   }: {
     issue: Issue;
+    issues?: Issue[];
     labels: Label[];
     projects: Project[];
     onToggleStatus: (id: number) => void;
     onUpdateMeta: (issue: Issue) => void;
     onUpdateContent: (id: number, title: string, body: string) => void;
+    onSelectIssue?: (id: number) => void;
   } = $props();
 
   let isEditingTitle = $state(false);
@@ -113,12 +117,9 @@
   }
 
   async function toggleLabel(lbl: Label) {
-    const exists = issue.labels.some((l) => l.id === lbl.id);
-    if (exists) {
-      issue.labels = issue.labels.filter((l) => l.id !== lbl.id);
-    } else {
-      issue.labels = [...issue.labels, lbl];
-    }
+    issue.labels = issue.labels.some((l) => l.id === lbl.id)
+      ? issue.labels.filter((l) => l.id !== lbl.id)
+      : [...issue.labels, lbl];
     await onUpdateMeta(issue);
     await loadData();
   }
@@ -189,7 +190,7 @@
             onclick={startEditTitle}
             class="text-xs text-gh-muted hover:text-gh-link border border-gh-border bg-gh-subtle px-2.5 py-1 rounded-md cursor-pointer flex items-center gap-1 shrink-0"
           >
-            <Pencil class="w-3 h-3" />
+            <Pencil class="w-3.5 h-3.5" />
             <span>Edit</span>
           </button>
         </div>
@@ -264,6 +265,8 @@
               <MarkdownEditor
                 bind:value={editBodyValue}
                 rows={12}
+                {issues}
+                {onSelectIssue}
                 onsubmit={saveBody}
               />
 
@@ -285,12 +288,12 @@
               </div>
             </div>
           {:else}
-            <Markdown content={issue.body} />
+            <Markdown content={issue.body} {issues} {onSelectIssue} />
           {/if}
         </div>
       </div>
 
-      <IssueTimeline {events} />
+      <IssueTimeline {events} {onSelectIssue} />
     </div>
 
     <div class="md:col-span-1 border-t md:border-t-0 md:border-l border-gh-border md:pl-6 flex flex-col gap-6 text-xs">

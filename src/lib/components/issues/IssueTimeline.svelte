@@ -1,10 +1,16 @@
 <script lang="ts">
-  import { CircleDot, CheckCircle2, Tag, FolderKanban, Pencil } from '@lucide/svelte';
+  import { CircleDot, CheckCircle2, Tag, FolderKanban, Pencil, Link2 } from '@lucide/svelte';
   import LabelBadge from '$lib/components/ui/LabelBadge.svelte';
   import { formatRelativeTime } from '$lib/utils/format';
   import type { IssueEvent } from '$lib/types';
 
-  let { events }: { events: IssueEvent[] } = $props();
+  let {
+    events,
+    onSelectIssue
+  }: {
+    events: IssueEvent[];
+    onSelectIssue?: (id: number) => void;
+  } = $props();
 
   let visibleEvents = $derived.by(() => {
     const result: IssueEvent[] = [];
@@ -114,6 +120,10 @@
             <span class="w-7 h-7 rounded-full bg-gh-subtle border border-gh-border text-gh-muted flex items-center justify-center">
               <FolderKanban class="w-3.5 h-3.5" />
             </span>
+          {:else if ev.event_type === 'cross_reference'}
+            <span class="w-7 h-7 rounded-full bg-gh-subtle border border-gh-border text-gh-muted flex items-center justify-center">
+              <Link2 class="w-3.5 h-3.5" />
+            </span>
           {/if}
         </div>
 
@@ -150,6 +160,16 @@
               <span>to</span>
               <span class="font-semibold text-gh-text">{ev.new_value}</span>
             {/if}
+          {:else if ev.event_type === 'cross_reference'}
+            <span>referenced this issue in</span>
+            <button
+              type="button"
+              onclick={() => ev.old_value && onSelectIssue?.(Number(ev.old_value))}
+              class="font-semibold text-gh-link hover:underline inline-flex items-center gap-1 cursor-pointer"
+            >
+              <span>#{ev.old_value}</span>
+              <span class="text-gh-text truncate max-w-[280px] font-medium hover:text-gh-link">{ev.new_value}</span>
+            </button>
           {/if}
 
           <span class="text-gh-muted ml-auto sm:ml-1">{formatRelativeTime(ev.created_at)}</span>

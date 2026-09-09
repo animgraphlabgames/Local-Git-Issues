@@ -15,12 +15,13 @@
   let issues = $state<Issue[]>([]);
   let labels = $state<Label[]>([]);
   let projects = $state<Project[]>([]);
-
   let currentNav = $state<NavTab>('issues');
   let currentView = $state<IssueView>('list');
   let selectedId = $state<number | null>(null);
 
-  let filterTab = $state<IssueStatus>('open');
+  let filterTab = $state<IssueStatus>(
+    typeof window !== 'undefined' && JSON.parse(localStorage.getItem('local_issues_filters') || '{}').tab === 'closed' ? 'closed' : 'open'
+  );
   let searchInputRef = $state<HTMLInputElement | null>(null);
   let highlightedIndex = $state<number>(0);
   let isKeybindsOpen = $state(false);
@@ -154,6 +155,12 @@
     }
   }
 
+  function handleSelectIssue(id: number) {
+    selectedId = id;
+    currentNav = 'issues';
+    currentView = 'detail';
+  }
+
   let selectedIssue = $derived(issues.find((i) => i.id === selectedId));
   let visibleIssues = $derived(issues.filter((i) => i.status === filterTab));
 
@@ -189,9 +196,7 @@
       }
     }
 
-    if (isInputActive) {
-      return;
-    }
+    if (isInputActive) { return; }
 
     if (isModifier && (e.key === 'n' || e.key === 'N')) {
       e.preventDefault();
@@ -225,14 +230,10 @@
         highlightedIndex = 0;
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (highlightedIndex < visibleIssues.length - 1) {
-          highlightedIndex += 1;
-        }
+        if (highlightedIndex < visibleIssues.length - 1) { highlightedIndex += 1; }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        if (highlightedIndex > 0) {
-          highlightedIndex -= 1;
-        }
+        if (highlightedIndex > 0) { highlightedIndex -= 1; }
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (visibleIssues[highlightedIndex]) {
@@ -274,26 +275,27 @@
           bind:filterTab
           bind:searchRef={searchInputRef}
           bind:highlightedIndex
-          onSelectIssue={(id) => {
-            selectedId = id;
-            currentView = 'detail';
-          }}
+          onSelectIssue={handleSelectIssue}
         />
       {:else if currentView === 'detail' && selectedIssue}
         <IssueDetail
           issue={selectedIssue}
+          {issues}
           {labels}
           {projects}
           onToggleStatus={handleToggleStatus}
           onUpdateMeta={handleUpdateMeta}
           onUpdateContent={handleUpdateContent}
+          onSelectIssue={handleSelectIssue}
         />
       {:else if currentView === 'new'}
         <IssueNew
+          {issues}
           {labels}
           {projects}
           onSubmit={handleCreateIssue}
           onCancel={() => (currentView = 'list')}
+          onSelectIssue={handleSelectIssue}
         />
       {/if}
     {:else if currentNav === 'labels'}

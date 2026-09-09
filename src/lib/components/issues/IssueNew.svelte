@@ -2,18 +2,22 @@
   import { Tag, FolderKanban, Settings, Check, X, Search } from '@lucide/svelte';
   import MarkdownEditor from '$lib/components/markdown/MarkdownEditor.svelte';
   import LabelBadge from '$lib/components/ui/LabelBadge.svelte';
-  import type { Label, Project, CreateIssuePayload } from '$lib/types';
+  import type { Issue, Label, Project, CreateIssuePayload } from '$lib/types';
 
   let {
+    issues = [],
     labels,
     projects,
     onSubmit,
-    onCancel
+    onCancel,
+    onSelectIssue
   }: {
+    issues?: Issue[];
     labels: Label[];
     projects: Project[];
     onSubmit: (data: CreateIssuePayload) => void;
     onCancel: () => void;
+    onSelectIssue?: (id: number) => void;
   } = $props();
 
   let title = $state('');
@@ -46,11 +50,9 @@
   );
 
   function toggleLabel(id: number) {
-    if (selectedLabels.includes(id)) {
-      selectedLabels = selectedLabels.filter((i) => i !== id);
-    } else {
-      selectedLabels = [...selectedLabels, id];
-    }
+    selectedLabels = selectedLabels.includes(id)
+      ? selectedLabels.filter((i) => i !== id)
+      : [...selectedLabels, id];
   }
 
   function handleSubmit(e?: Event) {
@@ -99,7 +101,9 @@
     <MarkdownEditor
       bind:value={body}
       rows={14}
-      placeholder="Leave a comment (supports Markdown tables, code, blockquotes, paste images, etc.)"
+      {issues}
+      {onSelectIssue}
+      placeholder="Leave a comment (supports Markdown, tables, #issue links, etc.)"
       onsubmit={handleSubmit}
     />
 

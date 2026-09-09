@@ -27,7 +27,7 @@ export interface Issue {
 export interface IssueEvent {
   id: number;
   issue_id: number;
-  event_type: 'status_change' | 'title_change' | 'label_added' | 'label_removed' | 'project_change';
+  event_type: 'status_change' | 'title_change' | 'label_added' | 'label_removed' | 'project_change' | 'cross_reference';
   old_value: string | null;
   new_value: string | null;
   metadata: string | null;
