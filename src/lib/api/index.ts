@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Issue, IssueEvent, IssueRevision, Label, Project, CreateIssuePayload, UpdateIssueMetaPayload } from '$lib/types';
+import type { Issue, IssueEvent, IssueRevision, Label, Project, Dependency, CreateIssuePayload, UpdateIssueMetaPayload } from '$lib/types';
 
 export const issuesApi = {
   getAll: () => invoke<Issue[]>('get_issues'),
@@ -39,6 +39,14 @@ export const projectsApi = {
   update: (id: number, title: string, description: string) =>
     invoke<Project>('update_project', { id, title, description }),
   delete: (id: number) => invoke<void>('delete_project', { id })
+};
+
+export const dependenciesApi = {
+  getAll: () => invoke<Dependency[]>('get_dependencies'),
+  checkAll: () => invoke<Dependency[]>('check_dependencies'),
+  acknowledge: (id: number) => invoke<Dependency>('acknowledge_dependency', { id }),
+  add: (name: string, target: string) => invoke<Dependency>('add_dependency', { name, target }),
+  delete: (id: number) => invoke<void>('delete_dependency', { id })
 };
 
 export const systemApi = {

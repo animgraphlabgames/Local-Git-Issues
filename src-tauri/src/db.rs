@@ -46,13 +46,27 @@ pub fn init_db(conn: &Connection) -> rusqlite::Result<()> {
             issue_id INTEGER NOT NULL REFERENCES issues(id) ON DELETE CASCADE,
             body TEXT NOT NULL,
             created_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS dependencies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            repo_owner TEXT NOT NULL,
+            repo_name TEXT NOT NULL,
+            last_seen_tag TEXT,
+            latest_tag TEXT,
+            release_name TEXT,
+            release_url TEXT,
+            published_at TEXT,
+            has_update INTEGER NOT NULL DEFAULT 0,
+            last_checked_at TEXT,
+            created_at TEXT NOT NULL,
+            UNIQUE(repo_owner, repo_name)
         );",
     )?;
 
     let _ = conn.execute("ALTER TABLE issues ADD COLUMN project_id INTEGER", []);
 
-    let label_count: i64 = conn.query_row("SELECT COUNT(*) FROM labels", [], |r| r.get(0))?;
-    if label_count == 0 {
+    if conn.query_row("SELECT COUNT(*) FROM labels", [], |r| r.get::<_, i64>(0))? == 0 {
         conn.execute(
             "INSERT INTO labels (name, color, description) VALUES
             ('bug', '#d73a4a', 'Something isn''t working'),
@@ -65,8 +79,7 @@ pub fn init_db(conn: &Connection) -> rusqlite::Result<()> {
         )?;
     }
 
-    let project_count: i64 = conn.query_row("SELECT COUNT(*) FROM projects", [], |r| r.get(0))?;
-    if project_count == 0 {
+    if conn.query_row("SELECT COUNT(*) FROM projects", [], |r| r.get::<_, i64>(0))? == 0 {
         conn.execute(
             "INSERT INTO projects (title, description) VALUES 
             ('Desktop Platform Support', 'macOS, Windows, and Linux windowing fixes')",
@@ -74,8 +87,18 @@ pub fn init_db(conn: &Connection) -> rusqlite::Result<()> {
         )?;
     }
 
-    let issue_count: i64 = conn.query_row("SELECT COUNT(*) FROM issues", [], |r| r.get(0))?;
-    if issue_count == 0 {
+    if conn.query_row("SELECT COUNT(*) FROM dependencies", [], |r| r.get::<_, i64>(0))? == 0 {
+        let now = Utc::now().to_rfc3339();
+        conn.execute(
+            "INSERT INTO dependencies (name, repo_owner, repo_name, created_at) VALUES
+            ('SDL', 'libsdl-org', 'SDL', ?1),
+            ('EnTT', 'skypjack', 'entt', ?1),
+            ('Clay', 'nicbarker', 'clay', ?1)",
+            params![now],
+        )?;
+    }
+
+    if conn.query_row("SELECT COUNT(*) FROM issues", [], |r| r.get::<_, i64>(0))? == 0 {
         let now = Utc::now().to_rfc3339();
         conn.execute(
             "INSERT INTO issues (title, body, status, project_id, created_at) VALUES 
@@ -104,24 +127,20 @@ pub fn init_db(conn: &Connection) -> rusqlite::Result<()> {
 }
 
 pub fn fetch_labels_for_issue(conn: &Connection, issue_id: i64) -> rusqlite::Result<Vec<Label>> {
-    let mut stmt = conn.prepare(
+    conn.prepare(
         "SELECT l.id, l.name, l.color, l.description 
          FROM labels l 
          JOIN issue_labels il ON l.id = il.label_id 
          WHERE il.issue_id = ?1 
          ORDER BY l.name ASC",
-    )?;
-    let iter = stmt.query_map(params![issue_id], |row| {
+    )?
+    .query_map(params![issue_id], |row| {
         Ok(Label {
             id: row.get(0)?,
             name: row.get(1)?,
             color: row.get(2)?,
             description: row.get(3)?,
         })
-    })?;
-    let mut labels = Vec::new();
-    for l in iter {
-        labels.push(l?);
-    }
-    Ok(labels)
+    })?
+    .collect()
 }

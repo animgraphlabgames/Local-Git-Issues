@@ -45,3 +45,19 @@ pub struct IssueRevision {
     pub body: String,
     pub created_at: String,
 }
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Dependency {
+    pub id: i64,
+    pub name: String,
+    pub repo_owner: String,
+    pub repo_name: String,
+    pub last_seen_tag: Option<String>,
+    pub latest_tag: Option<String>,
+    pub release_name: Option<String>,
+    pub release_url: Option<String>,
+    pub published_at: Option<String>,
+    pub has_update: bool,
+    pub last_checked_at: Option<String>,
+    pub created_at: String,
+}

@@ -41,6 +41,21 @@ export interface IssueRevision {
   created_at: string;
 }
 
+export interface Dependency {
+  id: number;
+  name: string;
+  repo_owner: string;
+  repo_name: string;
+  last_seen_tag: string | null;
+  latest_tag: string | null;
+  release_name: string | null;
+  release_url: string | null;
+  published_at: string | null;
+  has_update: boolean;
+  last_checked_at: string | null;
+  created_at: string;
+}
+
 export interface CreateIssuePayload {
   title: string;
   body: string;
@@ -54,5 +69,5 @@ export interface UpdateIssueMetaPayload {
   labelIds: number[];
 }
 
-export type NavTab = 'issues' | 'labels' | 'projects';
+export type NavTab = 'issues' | 'labels' | 'projects' | 'dependencies';
 export type IssueView = 'list' | 'detail' | 'new';

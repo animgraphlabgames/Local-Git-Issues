@@ -1,20 +1,23 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { listen } from '@tauri-apps/api/event';
   import { CircleHelp } from '@lucide/svelte';
-  import { issuesApi, labelsApi, projectsApi, systemApi } from '$lib/api';
+  import { issuesApi, labelsApi, projectsApi, dependenciesApi, systemApi } from '$lib/api';
   import Nav from '$lib/components/navigation/Nav.svelte';
   import IssueList from '$lib/components/issues/IssueList.svelte';
   import IssueDetail from '$lib/components/issues/IssueDetail.svelte';
   import IssueNew from '$lib/components/issues/IssueNew.svelte';
   import LabelsView from '$lib/components/labels/LabelsView.svelte';
   import ProjectsView from '$lib/components/projects/ProjectsView.svelte';
+  import DependenciesView from '$lib/components/dependencies/DependenciesView.svelte';
   import KeybindsModal from '$lib/components/modals/KeybindsModal.svelte';
   import SettingsModal from '$lib/components/modals/SettingsModal.svelte';
-  import type { Issue, Label, Project, NavTab, IssueView, IssueStatus, CreateIssuePayload } from '$lib/types';
+  import type { Issue, Label, Project, Dependency, NavTab, IssueView, IssueStatus, CreateIssuePayload } from '$lib/types';
 
   let issues = $state<Issue[]>([]);
   let labels = $state<Label[]>([]);
   let projects = $state<Project[]>([]);
+  let dependencies = $state<Dependency[]>([]);
   let currentNav = $state<NavTab>('issues');
   let currentView = $state<IssueView>('list');
   let selectedId = $state<number | null>(null);
@@ -28,18 +31,58 @@
   let isSettingsOpen = $state(false);
   let autostart = $state(false);
 
+  let selectedIssue = $derived(issues.find((i) => i.id === selectedId));
+  let visibleIssues = $derived(issues.filter((i) => i.status === filterTab));
+  let dependenciesUnreadCount = $derived(dependencies.filter((d) => d.has_update).length);
+
   async function loadData() {
     try {
-      const [fetchedIssues, fetchedLabels, fetchedProjects, fetchedAutostart] = await Promise.all([
+      const [fetchedIssues, fetchedLabels, fetchedProjects, fetchedDeps, fetchedAutostart] = await Promise.all([
         issuesApi.getAll(),
         labelsApi.getAll(),
         projectsApi.getAll(),
+        dependenciesApi.getAll(),
         systemApi.getAutostart()
       ]);
       issues = fetchedIssues;
       labels = fetchedLabels;
       projects = fetchedProjects;
+      dependencies = fetchedDeps;
       autostart = fetchedAutostart;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function handleCheckDependencies() {
+    try {
+      dependencies = await dependenciesApi.checkAll();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function handleAcknowledgeDependency(id: number) {
+    try {
+      const updated = await dependenciesApi.acknowledge(id);
+      dependencies = dependencies.map((d) => (d.id === updated.id ? updated : d));
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function handleAddDependency(name: string, target: string) {
+    try {
+      dependencies = [await dependenciesApi.add(name, target), ...dependencies];
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function handleDeleteDependency(id: number) {
+    try {
+      await dependenciesApi.delete(id);
+      dependencies = dependencies.filter((d) => d.id !== id);
     } catch (e) {
       console.error(e);
     }
@@ -85,10 +128,9 @@
 
   async function handleUpdateMeta(issue: Issue) {
     try {
-      const pid = issue.project_id !== null && !isNaN(Number(issue.project_id)) ? Number(issue.project_id) : null;
       const updated = await issuesApi.updateMeta({
         id: issue.id,
-        projectId: pid,
+        projectId: issue.project_id !== null && !isNaN(Number(issue.project_id)) ? Number(issue.project_id) : null,
         labelIds: issue.labels.map((l) => Number(l.id))
       });
       issues = issues.map((i) => (i.id === updated.id ? updated : i));
@@ -99,8 +141,7 @@
 
   async function handleCreateLabel(name: string, color: string, description: string) {
     try {
-      const created = await labelsApi.create(name, color, description);
-      labels = [...labels, created];
+      labels = [...labels, await labelsApi.create(name, color, description)];
     } catch (e) {
       console.error(e);
     }
@@ -128,8 +169,7 @@
 
   async function handleCreateProject(title: string, description: string) {
     try {
-      const created = await projectsApi.create(title, description);
-      projects = [created, ...projects];
+      projects = [await projectsApi.create(title, description), ...projects];
     } catch (e) {
       console.error(e);
     }
@@ -161,12 +201,9 @@
     currentView = 'detail';
   }
 
-  let selectedIssue = $derived(issues.find((i) => i.id === selectedId));
-  let visibleIssues = $derived(issues.filter((i) => i.status === filterTab));
-
   function handleKeydown(e: KeyboardEvent) {
     const isModifier = e.ctrlKey || e.metaKey;
-    const isInputActive = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName || '');
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName || '')) return;
 
     if (isModifier && e.key === '/') {
       e.preventDefault();
@@ -181,22 +218,14 @@
     }
 
     if (e.key === 'Escape') {
-      if (isKeybindsOpen) {
-        isKeybindsOpen = false;
-        return;
-      }
-      if (isSettingsOpen) {
-        isSettingsOpen = false;
-        return;
-      }
+      if (isKeybindsOpen) return void (isKeybindsOpen = false);
+      if (isSettingsOpen) return void (isSettingsOpen = false);
       if (currentView !== 'list') {
         currentView = 'list';
         selectedId = null;
-        return;
       }
+      return;
     }
-
-    if (isInputActive) { return; }
 
     if (isModifier && (e.key === 'n' || e.key === 'N')) {
       e.preventDefault();
@@ -207,11 +236,8 @@
 
     if (isModifier && (e.key === 'k' || e.key === 'K')) {
       e.preventDefault();
-      if (currentView === 'detail' && selectedId !== null) {
-        handleToggleStatus(selectedId);
-      } else if (currentView === 'list' && visibleIssues[highlightedIndex]) {
-        handleToggleStatus(visibleIssues[highlightedIndex].id);
-      }
+      if (currentView === 'detail' && selectedId !== null) handleToggleStatus(selectedId);
+      else if (currentView === 'list' && visibleIssues[highlightedIndex]) handleToggleStatus(visibleIssues[highlightedIndex].id);
       return;
     }
 
@@ -230,21 +256,27 @@
         highlightedIndex = 0;
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (highlightedIndex < visibleIssues.length - 1) { highlightedIndex += 1; }
+        if (highlightedIndex < visibleIssues.length - 1) highlightedIndex += 1;
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        if (highlightedIndex > 0) { highlightedIndex -= 1; }
-      } else if (e.key === 'Enter') {
+        if (highlightedIndex > 0) highlightedIndex -= 1;
+      } else if (e.key === 'Enter' && visibleIssues[highlightedIndex]) {
         e.preventDefault();
-        if (visibleIssues[highlightedIndex]) {
-          selectedId = visibleIssues[highlightedIndex].id;
-          currentView = 'detail';
-        }
+        selectedId = visibleIssues[highlightedIndex].id;
+        currentView = 'detail';
       }
     }
   }
 
-  onMount(loadData);
+  onMount(() => {
+    loadData();
+    const unlisten = listen('dependencies-updated', async () => {
+      dependencies = await dependenciesApi.getAll();
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  });
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -253,9 +285,11 @@
   <Nav
     {currentNav}
     {currentView}
-    issuesCount={issues.length}
+    issuesCount={issues.filter((i) => i.status === 'open').length}
     labelsCount={labels.length}
     projectsCount={projects.length}
+    dependenciesCount={dependencies.length}
+    {dependenciesUnreadCount}
     onNavChange={(nav) => {
       currentNav = nav;
       currentView = 'list';
@@ -311,6 +345,14 @@
         onCreateProject={handleCreateProject}
         onUpdateProject={handleUpdateProject}
         onDeleteProject={handleDeleteProject}
+      />
+    {:else if currentNav === 'dependencies'}
+      <DependenciesView
+        {dependencies}
+        onCheckAll={handleCheckDependencies}
+        onAcknowledge={handleAcknowledgeDependency}
+        onAdd={handleAddDependency}
+        onDelete={handleDeleteDependency}
       />
     {/if}
   </main>

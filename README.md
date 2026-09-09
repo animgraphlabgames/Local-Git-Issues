@@ -21,6 +21,7 @@ An offline, lightweight desktop issue tracker with a GitHub-inspired workflow, M
 
 - **Offline & Local-First**: all data is saved directly to a local SQLite database.
 - **GitHub-Inspired UI**: familiar issue management with labels, projects, filters, search and issue referencing.
+- **Dependency Tracker**: track GitHub libraries your project depends on with automated every 1h background polling, and direct links to changelogs.
 - **Image Pasting**: `Ctrl + V` or upload from disk. Compressed to WebP and stored locally.
 - **Automated Storage Cleanup**: background garbage collection runs every hour and on startup to purge orphaned attachment files from disk.
 - **Markdown Editor**: typical markdown workflow, syntax toolbar, and standard editing shortcuts.

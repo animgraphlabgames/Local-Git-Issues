@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CircleDot, Tag, FolderKanban, Plus, Settings } from '@lucide/svelte';
+  import { CircleDot, Tag, FolderKanban, Package, Plus, Settings } from '@lucide/svelte';
   import type { NavTab, IssueView } from '$lib/types';
 
   let {
@@ -8,6 +8,8 @@
     issuesCount,
     labelsCount,
     projectsCount,
+    dependenciesCount,
+    dependenciesUnreadCount,
     onNavChange,
     onNewIssue,
     onOpenSettings
@@ -17,6 +19,8 @@
     issuesCount: number;
     labelsCount: number;
     projectsCount: number;
+    dependenciesCount: number;
+    dependenciesUnreadCount: number;
     onNavChange: (nav: NavTab) => void;
     onNewIssue: () => void;
     onOpenSettings: () => void;
@@ -24,7 +28,7 @@
 </script>
 
 <div class="flex items-center justify-between border-b border-gh-border pb-4 mb-6">
-  <nav class="flex items-center gap-2">
+  <nav class="flex items-center gap-2 flex-wrap">
     <button
       onclick={() => onNavChange('issues')}
       class="px-3 py-1.5 text-sm font-semibold rounded-md flex items-center gap-2 cursor-pointer transition-colors {currentNav === 'issues' ? 'bg-gh-subtle text-gh-text border border-gh-border' : 'text-gh-muted hover:text-gh-text'}"
@@ -50,6 +54,17 @@
       <FolderKanban class="w-4 h-4 text-gh-muted" />
       <span>Projects</span>
       <span class="bg-gray-200 text-gh-text text-xs px-2 py-0.5 rounded-full font-normal">{projectsCount}</span>
+    </button>
+
+    <button
+      onclick={() => onNavChange('dependencies')}
+      class="px-3 py-1.5 text-sm font-semibold rounded-md flex items-center gap-2 cursor-pointer transition-colors {currentNav === 'dependencies' ? 'bg-gh-subtle text-gh-text border border-gh-border' : 'text-gh-muted hover:text-gh-text'}"
+    >
+      <Package class="w-4 h-4 text-gh-muted" />
+      <span>Dependencies</span>
+      <span class="text-xs px-2 py-0.5 rounded-full font-normal {dependenciesUnreadCount > 0 ? 'bg-gh-purple text-white font-semibold' : 'bg-gray-200 text-gh-text'}">
+        {dependenciesCount}
+      </span>
     </button>
   </nav>
 
