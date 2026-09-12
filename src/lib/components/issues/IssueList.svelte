@@ -10,17 +10,17 @@
     labels,
     projects,
     onSelectIssue,
+    onToggleStatus,
     filterTab = $bindable<IssueStatus>('open'),
-    searchRef = $bindable<HTMLInputElement | null>(null),
-    highlightedIndex = $bindable<number>(0)
+    searchRef = $bindable<HTMLInputElement | null>(null)
   }: {
     issues: Issue[];
     labels: Label[];
     projects: Project[];
     onSelectIssue: (id: number) => void;
+    onToggleStatus?: (id: number) => void;
     filterTab?: IssueStatus;
     searchRef?: HTMLInputElement | null;
-    highlightedIndex?: number;
   } = $props();
 
   const saved = typeof window !== 'undefined'
@@ -36,41 +36,23 @@
   let search = $state<string>(saved.search ?? '');
   let selectedLabelFilters = $state<number[]>(saved.labels ?? []);
   let selectedProjectFilters = $state<number[]>(saved.projects ?? []);
-
+  let highlightedIndex = $state<number>(0);
   let openCount = $derived(issues.filter((i) => i.status === 'open').length);
   let closedCount = $derived(issues.filter((i) => i.status === 'closed').length);
-
-  let labelDropdownItems = $derived(
-    labels.map((lbl) => ({ value: lbl.id, label: lbl.name, color: lbl.color }))
-  );
-
-  let projectDropdownItems = $derived(
-    projects.map((prj) => ({ value: prj.id, label: prj.title }))
-  );
+  let labelDropdownItems = $derived( labels.map((lbl) => ({ value: lbl.id, label: lbl.name, color: lbl.color })));
+  let projectDropdownItems = $derived(projects.map((prj) => ({ value: prj.id, label: prj.title })));
 
   let filteredIssues = $derived(
     issues.filter((issue) => {
-      if (issue.status !== filterTab) return false;
-      if (search && !issue.title.toLowerCase().includes(search.toLowerCase())) return false;
-      if (
-        selectedLabelFilters.length > 0 &&
-        !selectedLabelFilters.every((id) => issue.labels.some((l) => l.id === id))
-      ) {
-        return false;
-      }
-      if (
-        selectedProjectFilters.length > 0 &&
-        (issue.project_id === null || !selectedProjectFilters.includes(issue.project_id))
-      ) {
-        return false;
-      }
+      if (issue.status !== filterTab) { return false; }
+      if (search && !issue.title.toLowerCase().includes(search.toLowerCase())) { return false; }
+      if (selectedLabelFilters.length > 0 && !selectedLabelFilters.every((id) => issue.labels.some((l) => l.id === id))) { return false; }
+      if (selectedProjectFilters.length > 0 && (issue.project_id === null || !selectedProjectFilters.includes(issue.project_id))) { return false; }
       return true;
     })
   );
 
-  let hasActiveFilters = $derived(
-    selectedLabelFilters.length > 0 || selectedProjectFilters.length > 0 || search.length > 0
-  );
+  let hasActiveFilters = $derived(selectedLabelFilters.length > 0 || selectedProjectFilters.length > 0 || search.length > 0);
 
   $effect(() => {
     if (labels.length > 0 && selectedLabelFilters.some((id) => !labels.some((l) => l.id === id))) {
@@ -93,7 +75,45 @@
   $effect(() => {
     if (highlightedIndex >= filteredIssues.length) { highlightedIndex = Math.max(0, filteredIssues.length - 1); }
   });
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName || '')) { return; }
+
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      if (filteredIssues[highlightedIndex] && onToggleStatus) {
+        e.preventDefault();
+        onToggleStatus(filteredIssues[highlightedIndex].id);
+      }
+      return;
+    }
+
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      filterTab = filterTab === 'open' ? 'closed' : 'open';
+      highlightedIndex = 0;
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (highlightedIndex < filteredIssues.length - 1) { highlightedIndex += 1; }
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (highlightedIndex > 0) { highlightedIndex -= 1; }
+      return;
+    }
+
+    if (e.key === 'Enter' && filteredIssues[highlightedIndex]) {
+      e.preventDefault();
+      onSelectIssue(filteredIssues[highlightedIndex].id);
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="border border-gh-border rounded-md bg-white">
   <div class="bg-gh-subtle p-3 border-b border-gh-border rounded-t-md flex flex-wrap gap-3 items-center justify-between relative z-20">

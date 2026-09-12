@@ -26,13 +26,10 @@
     typeof window !== 'undefined' && JSON.parse(localStorage.getItem('local_issues_filters') || '{}').tab === 'closed' ? 'closed' : 'open'
   );
   let searchInputRef = $state<HTMLInputElement | null>(null);
-  let highlightedIndex = $state<number>(0);
   let isKeybindsOpen = $state(false);
   let isSettingsOpen = $state(false);
   let autostart = $state(false);
-
   let selectedIssue = $derived(issues.find((i) => i.id === selectedId));
-  let visibleIssues = $derived(issues.filter((i) => i.status === filterTab));
   let dependenciesUnreadCount = $derived(dependencies.filter((d) => d.has_update).length);
 
   async function loadData() {
@@ -235,9 +232,10 @@
     }
 
     if (isModifier && (e.key === 'k' || e.key === 'K')) {
-      e.preventDefault();
-      if (currentView === 'detail' && selectedId !== null) handleToggleStatus(selectedId);
-      else if (currentView === 'list' && visibleIssues[highlightedIndex]) handleToggleStatus(visibleIssues[highlightedIndex].id);
+      if (currentView === 'detail' && selectedId !== null) {
+        e.preventDefault();
+        handleToggleStatus(selectedId);
+      }
       return;
     }
 
@@ -247,24 +245,6 @@
       currentView = 'list';
       setTimeout(() => searchInputRef?.focus(), 10);
       return;
-    }
-
-    if (currentNav === 'issues' && currentView === 'list') {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        filterTab = filterTab === 'open' ? 'closed' : 'open';
-        highlightedIndex = 0;
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        if (highlightedIndex < visibleIssues.length - 1) highlightedIndex += 1;
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        if (highlightedIndex > 0) highlightedIndex -= 1;
-      } else if (e.key === 'Enter' && visibleIssues[highlightedIndex]) {
-        e.preventDefault();
-        selectedId = visibleIssues[highlightedIndex].id;
-        currentView = 'detail';
-      }
     }
   }
 
@@ -308,8 +288,8 @@
           {projects}
           bind:filterTab
           bind:searchRef={searchInputRef}
-          bind:highlightedIndex
           onSelectIssue={handleSelectIssue}
+          onToggleStatus={handleToggleStatus}
         />
       {:else if currentView === 'detail' && selectedIssue}
         <IssueDetail
