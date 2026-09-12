@@ -342,6 +342,7 @@
     {:else if currentNav === 'projects'}
       <ProjectsView
         {projects}
+        {issues}
         onCreateProject={handleCreateProject}
         onUpdateProject={handleUpdateProject}
         onDeleteProject={handleDeleteProject}

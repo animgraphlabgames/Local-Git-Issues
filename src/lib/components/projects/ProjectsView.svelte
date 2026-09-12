@@ -1,14 +1,16 @@
 <script lang="ts">
   import { FolderKanban, Plus, Pencil, Trash2, Search, X, Check } from '@lucide/svelte';
-  import type { Project } from '$lib/types';
+  import type { Project, Issue } from '$lib/types';
 
   let {
     projects,
+    issues = [],
     onCreateProject,
     onUpdateProject,
     onDeleteProject
   }: {
     projects: Project[];
+    issues?: Issue[];
     onCreateProject: (title: string, description: string) => void;
     onUpdateProject: (id: number, title: string, description: string) => void;
     onDeleteProject: (id: number) => void;
@@ -16,18 +18,33 @@
 
   let searchQuery = $state('');
   let isCreating = $state(false);
-
   let newTitle = $state('');
   let newDescription = $state('');
-
   let editingId = $state<number | null>(null);
   let editTitle = $state('');
   let editDescription = $state('');
-
   let filteredProjects = $derived(
     projects.filter((p) =>
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.description.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+
+  let projectStats = $derived(
+    new Map(
+      projects.map((p) => {
+        const assigned = issues.filter((i) => i.project_id === p.id);
+        const closed = assigned.filter((i) => i.status === 'closed').length;
+        return [
+          p.id,
+          {
+            total: assigned.length,
+            open: assigned.length - closed,
+            closed,
+            percent: assigned.length ? Math.round((closed / assigned.length) * 100) : 0
+          }
+        ];
+      })
     )
   );
 
@@ -149,6 +166,7 @@
       </div>
     {:else}
       {#each filteredProjects as p (p.id)}
+        {@const stats = projectStats.get(p.id)}
         {#if editingId === p.id}
           <form
             onsubmit={(e) => handleUpdateSubmit(e, p.id)}
@@ -193,16 +211,32 @@
             </div>
           </form>
         {:else}
-          <div class="px-4 py-3 flex items-center justify-between hover:bg-gh-subtle transition-colors">
-            <div class="flex items-start gap-3 flex-1 min-w-0 pr-4">
+          <div class="px-4 py-3 flex items-center justify-between hover:bg-gh-subtle transition-colors gap-4">
+            <div class="flex items-start gap-3 flex-1 min-w-0">
               <FolderKanban class="w-4 h-4 text-gh-muted shrink-0 mt-0.5" />
-              <div class="min-w-0">
+              <div class="min-w-0 flex-1">
                 <h3 class="text-sm font-semibold text-gh-text leading-snug">{p.title}</h3>
                 <p class="text-xs text-gh-muted mt-0.5 leading-relaxed">{p.description || 'No description provided.'}</p>
+
+                <div class="mt-3 flex flex-col gap-1.5 w-full max-w-sm">
+                  <div class="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      class="h-full bg-gh-green transition-all duration-300"
+                      style="width: {stats?.percent ?? 0}%;"
+                    ></div>
+                  </div>
+                  <div class="flex items-center gap-3 text-[11px] text-gh-muted">
+                    <span class="font-medium text-gh-text">{stats?.percent ?? 0}% done</span>
+                    <span>•</span>
+                    <span>{stats?.open ?? 0} open</span>
+                    <span>•</span>
+                    <span>{stats?.closed ?? 0} closed</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div class="flex items-center gap-3 shrink-0 self-center">
+            <div class="flex items-center gap-3 shrink-0">
               <button
                 onclick={() => startEditing(p)}
                 class="text-xs text-gh-muted hover:text-gh-link cursor-pointer flex items-center gap-1"
