@@ -29,11 +29,12 @@ body {
   color: #1f2328;
 }
 
-.gh-markdown h1, .gh-markdown h2, .gh-markdown h3, .gh-markdown h4 {
+.gh-markdown h1, .gh-markdown h2, .gh-markdown h3, .gh-markdown h4, .gh-markdown h5, .gh-markdown h6 {
   font-weight: 600;
   margin-top: 24px;
   margin-bottom: 16px;
   line-height: 1.25;
+  scroll-margin-top: 24px;
 }
 .gh-markdown h1 { font-size: 2em; border-bottom: 1px solid var(--color-gh-border); padding-bottom: 0.3em; }
 .gh-markdown h2 { font-size: 1.5em; border-bottom: 1px solid var(--color-gh-border); padding-bottom: 0.3em; }

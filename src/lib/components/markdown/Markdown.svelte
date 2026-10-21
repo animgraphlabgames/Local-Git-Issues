@@ -44,6 +44,7 @@
     ]
   });
 
+  let containerRef = $state<HTMLDivElement | null>(null);
   let resolvedContent = $state('');
   let activeImageSrc = $state<string | null>(null);
   let hoveredIssue = $state<Issue | null>(null);
@@ -52,15 +53,27 @@
 
   $effect(() => {
     let active = true;
-    resolveAttachmentsInMarkdown(content || '').then((res) => {
-      if (active) resolvedContent = res;
-    });
-    return () => {
-      active = false;
-    };
+    resolveAttachmentsInMarkdown(content || '').then((res) => { if (active) resolvedContent = res; });
+    return () => { active = false; };
   });
 
   let parsed = $derived(marked.parse(resolvedContent || ''));
+
+  $effect(() => {
+    if (parsed && containerRef) {
+      const counts = new Map<string, number>();
+      containerRef.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((h) => {
+        const base = (h.textContent || '')
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/\s+/g, '-');
+        const count = counts.get(base) || 0;
+        counts.set(base, count + 1);
+        h.id = count ? `${base}-${count}` : base;
+      });
+    }
+  });
 
   function cancelClose() {
     if (hoverTimeout) {
@@ -71,9 +84,7 @@
 
   function scheduleClose() {
     cancelClose();
-    hoverTimeout = setTimeout(() => {
-      hoveredIssue = null;
-    }, 150);
+    hoverTimeout = setTimeout(() => { hoveredIssue = null; }, 150);
   }
 
   function updateHovercard(target: HTMLElement) {
@@ -108,6 +119,13 @@
 
     const linkTarget = (e.target as HTMLElement)?.closest('a');
     if (linkTarget && linkTarget.href) {
+      const href = linkTarget.getAttribute('href');
+      if (href?.startsWith('#') && href.length > 1) {
+        e.preventDefault();
+        const el = document.getElementById(href.slice(1));
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
       e.preventDefault();
       try {
         await openUrl(linkTarget.href);
@@ -148,6 +166,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div
+  bind:this={containerRef}
   class="gh-markdown"
   onclick={handleClick}
   onmouseover={handleMouseOver}

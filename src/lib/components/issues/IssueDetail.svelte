@@ -9,7 +9,8 @@
     X,
     Settings,
     Search,
-    History
+    History,
+    List
   } from '@lucide/svelte';
   import Markdown from '$lib/components/markdown/Markdown.svelte';
   import MarkdownEditor from '$lib/components/markdown/MarkdownEditor.svelte';
@@ -69,12 +70,44 @@
 
   let currentProject = $derived(projects.find((p) => p.id === issue.project_id));
 
+  let tocHeaders = $derived.by(() => {
+    const result: { level: number; text: string; id: string }[] = [];
+    const counts = new Map<string, number>();
+    let inCode = false;
+    for (const line of (issue.body || '').split('\n')) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('```')) {
+        inCode = !inCode;
+        continue;
+      }
+      if (inCode) continue;
+      const match = trimmed.match(/^(#{1,6})\s+(.+)$/);
+      if (match) {
+        const level = match[1].length;
+        const text = match[2].trim().replace(/[*_~`]/g, '');
+        const base = text
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/\s+/g, '-');
+        const count = counts.get(base) || 0;
+        counts.set(base, count + 1);
+        result.push({ level, text, id: count ? `${base}-${count}` : base });
+      }
+    }
+    return result;
+  });
+
+  let minTocLevel = $derived( tocHeaders.length > 0 ? Math.min(...tocHeaders.map((h) => h.level)) : 1 );
+
+  function scrollToHeading(id: string, index: number) {
+    const el = (id ? document.getElementById(id) : null) || document.querySelectorAll( '.gh-markdown h1, .gh-markdown h2, .gh-markdown h3, .gh-markdown h4, .gh-markdown h5, .gh-markdown h6' )[index];
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   async function loadData() {
     try {
-      const [evs, revs] = await Promise.all([
-        issuesApi.getEvents(issue.id),
-        issuesApi.getRevisions(issue.id)
-      ]);
+      const [evs, revs] = await Promise.all([ issuesApi.getEvents(issue.id), issuesApi.getRevisions(issue.id) ]);
       events = evs;
       revisions = revs;
     } catch (e) {
@@ -82,11 +115,7 @@
     }
   }
 
-  $effect(() => {
-    if (issue.id) {
-      loadData();
-    }
-  });
+  $effect(() => { if (issue.id) { loadData(); } });
 
   function startEditTitle() {
     editTitleValue = issue.title;
@@ -117,9 +146,7 @@
   }
 
   async function toggleLabel(lbl: Label) {
-    issue.labels = issue.labels.some((l) => l.id === lbl.id)
-      ? issue.labels.filter((l) => l.id !== lbl.id)
-      : [...issue.labels, lbl];
+    issue.labels = issue.labels.some((l) => l.id === lbl.id) ? issue.labels.filter((l) => l.id !== lbl.id) : [...issue.labels, lbl];
     await onUpdateMeta(issue);
     await loadData();
   }
@@ -460,6 +487,29 @@
           </div>
         {/if}
       </div>
+
+      {#if tocHeaders.length > 0}
+        <div class="border-t border-gh-border pt-4 flex flex-col gap-2">
+          <div class="flex items-center gap-1.5 font-semibold text-gh-text">
+            <List class="w-3.5 h-3.5 text-gh-muted" />
+            <span>Table of contents</span>
+          </div>
+
+          <div class="flex flex-col gap-0.5 max-h-[50vh] overflow-y-auto">
+            {#each tocHeaders as h, idx}
+              <button
+                type="button"
+                onclick={() => scrollToHeading(h.id, idx)}
+                class="text-left text-gh-muted hover:text-gh-link truncate cursor-pointer transition-colors leading-snug py-0.5"
+                style="padding-left: {(h.level - minTocLevel) * 12}px;"
+                title={h.text}
+              >
+                {h.text}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
 </div>
