@@ -35,17 +35,7 @@ An offline, lightweight desktop issue tracker with a GitHub-inspired workflow, M
 
 ## Shortcuts
 
-| Shortcut | Action |
-| :--- | :--- |
-| `Ctrl + N` | Create new issue |
-| `Ctrl + K` | Close / Reopen current issue |
-| `Ctrl + L` | Focus issue search bar |
-| `Ctrl + ,` | Open Settings |
-| `Tab` | Toggle Open / Closed issues tab |
-| `↑ / ↓` | Navigate issues in list |
-| `Enter` | Open highlighted issue |
-| `Ctrl + /` | Toggle keyboard shortcuts help |
-| `Esc` | Close / Back to list |
+Use `CTRL + /` to open the keyboard shortcuts help modal.
 
 ## Development
 
