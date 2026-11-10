@@ -77,8 +77,8 @@
   });
 
   function handleKeydown(e: KeyboardEvent) {
-    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName || '')) { return; }
-
+    const activeEl = document.activeElement;
+    if (activeEl instanceof HTMLElement && (activeEl.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName))) { return; }
     if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
       if (filteredIssues[highlightedIndex] && onToggleStatus) {
         e.preventDefault();

@@ -300,7 +300,7 @@
     syncValue();
   }
 
-  function toggleHeading(level: 1 | 2 | 3) {
+  function toggleHeading(level: 1 | 2 | 3 | 4 | 5) {
     editorRef?.focus();
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
@@ -470,21 +470,25 @@
     if (mentionSearch !== null && matchingIssues.length > 0) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
+        e.stopPropagation();
         mentionIndex = (mentionIndex + 1) % matchingIssues.length;
         return;
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault();
+        e.stopPropagation();
         mentionIndex = (mentionIndex - 1 + matchingIssues.length) % matchingIssues.length;
         return;
       }
       if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
+        e.stopPropagation();
         selectMention(matchingIssues[mentionIndex]);
         return;
       }
       if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         mentionSearch = null;
         return;
       }
@@ -494,12 +498,14 @@
 
     if (isMod && e.key === 'Enter') {
       e.preventDefault();
+      e.stopPropagation();
       onsubmit?.();
       return;
     }
 
     if (isMod && (e.key === 'b' || e.key === 'B')) {
       e.preventDefault();
+      e.stopPropagation();
       document.execCommand('bold', false);
       syncValue();
       return;
@@ -507,6 +513,7 @@
 
     if (isMod && (e.key === 'i' || e.key === 'I')) {
       e.preventDefault();
+      e.stopPropagation();
       document.execCommand('italic', false);
       syncValue();
       return;
@@ -514,18 +521,37 @@
 
     if (isMod && (e.key === 'k' || e.key === 'K')) {
       e.preventDefault();
+      e.stopPropagation();
       insertLink();
       return;
     }
 
     if (isMod && (e.key === 'e' || e.key === 'E')) {
       e.preventDefault();
+      e.stopPropagation();
       toggleInlineCode();
       return;
     }
 
+    if (isMod && e.shiftKey) {
+      let headingLevel: (1 | 2 | 3 | 4 | 5) | null = null;
+      if (e.code === 'Digit1' || e.code === 'Numpad1' || e.key === '1' || e.key === '!') headingLevel = 1;
+      else if (e.code === 'Digit2' || e.code === 'Numpad2' || e.key === '2' || e.key === '@') headingLevel = 2;
+      else if (e.code === 'Digit3' || e.code === 'Numpad3' || e.key === '3' || e.key === '#') headingLevel = 3;
+      else if (e.code === 'Digit4' || e.code === 'Numpad4' || e.key === '4' || e.key === '$') headingLevel = 4;
+      else if (e.code === 'Digit5' || e.code === 'Numpad5' || e.key === '5' || e.key === '%') headingLevel = 5;
+
+      if (headingLevel !== null) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleHeading(headingLevel);
+        return;
+      }
+    }
+
     if (isMod && e.shiftKey && (e.key === 'x' || e.key === 'X')) {
       e.preventDefault();
+      e.stopPropagation();
       document.execCommand('strikeThrough', false);
       syncValue();
       return;
@@ -533,12 +559,14 @@
 
     if (isMod && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
       e.preventDefault();
+      e.stopPropagation();
       insertCodeBlock();
       return;
     }
 
     if (isMod && e.shiftKey && e.key === '8') {
       e.preventDefault();
+      e.stopPropagation();
       document.execCommand('insertUnorderedList', false);
       syncValue();
       return;
@@ -546,6 +574,7 @@
 
     if (isMod && e.shiftKey && e.key === '7') {
       e.preventDefault();
+      e.stopPropagation();
       document.execCommand('insertOrderedList', false);
       syncValue();
       return;
@@ -553,7 +582,20 @@
 
     if (isMod && e.shiftKey && (e.key === '.' || e.key === '>')) {
       e.preventDefault();
+      e.stopPropagation();
       applyFormatBlock('blockquote');
+      syncValue();
+      return;
+    }
+
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.shiftKey) {
+        document.execCommand('outdent', false);
+      } else {
+        document.execCommand('indent', false);
+      }
       syncValue();
       return;
     }
@@ -577,7 +619,7 @@
         type="button"
         onclick={() => toggleHeading(1)}
         class="p-1 rounded hover:bg-gray-200 hover:text-gh-text cursor-pointer"
-        title="Heading 1"
+        title="Heading 1 (Ctrl+Shift+1)"
       >
         <Heading1 class="w-4 h-4" />
       </button>
@@ -585,7 +627,7 @@
         type="button"
         onclick={() => toggleHeading(2)}
         class="p-1 rounded hover:bg-gray-200 hover:text-gh-text cursor-pointer"
-        title="Heading 2"
+        title="Heading 2 (Ctrl+Shift+2)"
       >
         <Heading2 class="w-4 h-4" />
       </button>
@@ -593,7 +635,7 @@
         type="button"
         onclick={() => toggleHeading(3)}
         class="p-1 rounded hover:bg-gray-200 hover:text-gh-text cursor-pointer"
-        title="Heading 3"
+        title="Heading 3 (Ctrl+Shift+3)"
       >
         <Heading3 class="w-4 h-4" />
       </button>

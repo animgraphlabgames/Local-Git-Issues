@@ -187,8 +187,14 @@
             type="text"
             bind:value={editTitleValue}
             onkeydown={(e) => {
-              if (e.key === 'Enter') saveTitle();
-              if (e.key === 'Escape') isEditingTitle = false;
+              if (e.key === 'Enter') {
+                e.stopPropagation();
+                saveTitle();
+              }
+              if (e.key === 'Escape') {
+                e.stopPropagation();
+                isEditingTitle = false;
+              }
             }}
             class="flex-1 text-2xl font-normal text-gh-text px-3 py-1 bg-white border border-gh-border rounded-md focus:outline-none focus:border-gh-link"
           />

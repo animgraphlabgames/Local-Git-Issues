@@ -23,6 +23,7 @@
     { key: 'Ctrl + I', desc: 'Italic' },
     { key: 'Ctrl + K', desc: 'Insert link' },
     { key: 'Ctrl + E', desc: 'Inline code' },
+    { key: 'Ctrl + Shift + 1-5', desc: 'Heading 1-5' },
     { key: 'Ctrl + Shift + C', desc: 'Code block' },
     { key: 'Ctrl + Shift + X', desc: 'Strikethrough' },
     { key: 'Ctrl + Shift + 8', desc: 'Unordered list' },

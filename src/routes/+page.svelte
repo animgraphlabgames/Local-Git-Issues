@@ -200,7 +200,13 @@
 
   function handleKeydown(e: KeyboardEvent) {
     const isModifier = e.ctrlKey || e.metaKey;
-    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName || '')) return;
+    const activeEl = document.activeElement;
+    if (
+      activeEl instanceof HTMLElement &&
+      (activeEl.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName))
+    ) {
+      return;
+    }
 
     if (isModifier && e.key === '/') {
       e.preventDefault();
