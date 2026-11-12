@@ -290,6 +290,15 @@
     }
   }
 
+  function getTarget(selector: string): HTMLElement | null {
+    editorRef?.focus();
+    const s = window.getSelection();
+    if (!s?.rangeCount) return null;
+    let n: Node | null = s.getRangeAt(0).commonAncestorContainer;
+    if (n.nodeType === Node.TEXT_NODE) n = n.parentElement;
+    return (n as HTMLElement)?.closest(selector) ?? null;
+  }
+
   function applyFormatBlock(tag: string) {
     editorRef?.focus();
     try {
@@ -301,48 +310,61 @@
   }
 
   function toggleHeading(level: 1 | 2 | 3 | 4 | 5) {
-    editorRef?.focus();
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    let parent = sel.getRangeAt(0).commonAncestorContainer as HTMLElement;
-    if (parent.nodeType === Node.TEXT_NODE) parent = parent.parentElement as HTMLElement;
     const target = `h${level}`;
-    const isAlready = parent.closest(target);
-    applyFormatBlock(isAlready ? 'p' : target);
+    const h = getTarget('h1, h2, h3, h4, h5, h6');
+    if (h?.tagName.toLowerCase() === target) {
+      const p = document.createElement('p');
+      p.append(...h.childNodes);
+      h.replaceWith(p);
+      syncValue();
+    } else {
+      applyFormatBlock(target);
+    }
   }
 
   function toggleInlineCode() {
-    editorRef?.focus();
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const range = sel.getRangeAt(0);
-    let parent = range.commonAncestorContainer as HTMLElement;
-    if (parent.nodeType === Node.TEXT_NODE) parent = parent.parentElement as HTMLElement;
-    const codeEl = parent.closest('code');
-    if (codeEl && codeEl.parentElement?.tagName.toLowerCase() !== 'pre') {
-      const text = codeEl.textContent || '';
-      codeEl.replaceWith(document.createTextNode(text));
+    const code = getTarget('code');
+    if (code && code.parentElement?.tagName.toLowerCase() !== 'pre') {
+      code.replaceWith(...code.childNodes);
       syncValue();
       return;
     }
-    if (range.collapsed) return;
-    const code = document.createElement('code');
-    code.textContent = range.toString();
-    range.deleteContents();
-    range.insertNode(code);
-    range.setStartAfter(code);
-    range.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(range);
+    const s = window.getSelection();
+    if (!s || s.isCollapsed) return;
+    const r = s.getRangeAt(0);
+    const el = document.createElement('code');
+    el.textContent = r.toString();
+    r.deleteContents();
+    r.insertNode(el);
     syncValue();
   }
 
-  function insertCodeBlock() {
-    editorRef?.focus();
-    const sel = window.getSelection();
-    const text = sel?.toString() || 'code';
-    insertHtmlAtCaret(`<pre><code>${text}</code></pre><p><br></p>`);
+  function toggleCodeBlock() {
+    const pre = getTarget('pre');
+    if (pre) {
+      const ps = (pre.textContent || '').split('\n').map((line) => {
+        const p = document.createElement('p');
+        p.textContent = line || '\u00A0';
+        return p;
+      });
+      pre.replaceWith(...ps);
+      syncValue();
+      return;
+    }
+    const s = window.getSelection();
+    insertHtmlAtCaret(`<pre><code>${s?.toString() || 'code'}</code></pre><p><br></p>`);
     syncValue();
+  }
+
+  function toggleBlockquote() {
+    const bq = getTarget('blockquote');
+    if (bq) {
+      const nodes = bq.children.length ? Array.from(bq.childNodes) : [Object.assign(document.createElement('p'), { innerHTML: bq.innerHTML })];
+      bq.replaceWith(...nodes);
+      syncValue();
+      return;
+    }
+    applyFormatBlock('blockquote');
   }
 
   function insertTable() {
@@ -351,13 +373,18 @@
     syncValue();
   }
 
-  function insertLink() {
-    editorRef?.focus();
-    const sel = window.getSelection();
-    const selectedText = sel?.toString() || '';
-    const url = prompt('Enter URL:', selectedText.startsWith('http') ? selectedText : 'https://');
+  function toggleLink() {
+    const a = getTarget('a');
+    if (a) {
+      a.replaceWith(...a.childNodes);
+      syncValue();
+      return;
+    }
+    const s = window.getSelection();
+    const txt = s?.toString() || '';
+    const url = prompt('Enter URL:', txt.startsWith('http') ? txt : 'https://');
     if (url) {
-      if (selectedText && !selectedText.startsWith('http')) {
+      if (txt && !txt.startsWith('http')) {
         document.execCommand('createLink', false, url);
       } else {
         insertHtmlAtCaret(`<a href="${url}">${url}</a>`);
@@ -522,7 +549,7 @@
     if (isMod && (e.key === 'k' || e.key === 'K')) {
       e.preventDefault();
       e.stopPropagation();
-      insertLink();
+      toggleLink();
       return;
     }
 
@@ -560,7 +587,7 @@
     if (isMod && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
       e.preventDefault();
       e.stopPropagation();
-      insertCodeBlock();
+      toggleCodeBlock();
       return;
     }
 
@@ -583,8 +610,7 @@
     if (isMod && e.shiftKey && (e.key === '.' || e.key === '>')) {
       e.preventDefault();
       e.stopPropagation();
-      applyFormatBlock('blockquote');
-      syncValue();
+      toggleBlockquote();
       return;
     }
 
@@ -604,7 +630,7 @@
 
 <svelte:window onresize={updateMentionState} onscroll={updateMentionState} />
 
-<div class="border border-gh-border rounded-md overflow-hidden bg-white">
+<div class="border border-gh-border rounded-md bg-white">
   <input
     type="file"
     accept="image/*"
@@ -613,7 +639,7 @@
     class="hidden"
   />
 
-  <div class="bg-gh-subtle border-b border-gh-border px-3 py-2 flex items-center justify-between flex-wrap gap-2 text-gh-muted select-none">
+  <div class="sticky top-0 z-10 bg-gh-subtle border-b border-gh-border px-3 py-2 flex items-center justify-between flex-wrap gap-2 text-gh-muted select-none rounded-t-md">
     <div class="flex items-center gap-1 flex-wrap">
       <button
         type="button"
@@ -679,7 +705,7 @@
       </button>
       <button
         type="button"
-        onclick={insertCodeBlock}
+        onclick={toggleCodeBlock}
         class="p-1 rounded hover:bg-gray-200 hover:text-gh-text cursor-pointer"
         title="Code block (Ctrl+Shift+C)"
       >
@@ -687,7 +713,7 @@
       </button>
       <button
         type="button"
-        onclick={() => { applyFormatBlock('blockquote'); syncValue(); }}
+        onclick={toggleBlockquote}
         class="p-1 rounded hover:bg-gray-200 hover:text-gh-text cursor-pointer"
         title="Quote (Ctrl+Shift+>)"
       >
@@ -725,7 +751,7 @@
 
       <button
         type="button"
-        onclick={insertLink}
+        onclick={toggleLink}
         class="p-1 rounded hover:bg-gray-200 hover:text-gh-text cursor-pointer"
         title="Insert link (Ctrl+K)"
       >
@@ -773,7 +799,7 @@
     }}
     onkeydown={handleKeydown}
     onpaste={handlePaste}
-    class="gh-markdown p-5 focus:outline-none bg-white text-gh-text overflow-y-auto selection:bg-blue-100"
+    class="gh-markdown p-5 focus:outline-none bg-white text-gh-text overflow-y-auto selection:bg-blue-100 rounded-b-md"
     style="min-height: {Math.max(180, (rows || 12) * 22)}px;"
   ></div>
 </div>

@@ -263,8 +263,8 @@
 
   <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
     <div class="md:col-span-3 flex flex-col gap-6">
-      <div class="border border-gh-border rounded-md overflow-hidden bg-white shadow-xs">
-        <div class="bg-gh-subtle border-b border-gh-border px-4 py-2.5 text-xs text-gh-muted flex items-center justify-between">
+      <div class="border border-gh-border rounded-md bg-white shadow-xs">
+        <div class="bg-gh-subtle border-b border-gh-border px-4 py-2.5 text-xs text-gh-muted flex items-center justify-between rounded-t-md {isEditingBody ? '' : 'sticky top-0 z-20'}">
           <div class="flex items-center gap-2">
             <span class="font-semibold text-gh-text">Description</span>
             {#if revisions.length > 1}
@@ -292,7 +292,7 @@
           {/if}
         </div>
 
-        <div class="p-6 bg-white">
+        <div class="p-6 bg-white rounded-b-md">
           {#if isEditingBody}
             <div class="flex flex-col gap-3">
               <MarkdownEditor
@@ -303,7 +303,7 @@
                 onsubmit={saveBody}
               />
 
-              <div class="flex items-center justify-end gap-2">
+              <div class="sticky bottom-0 z-10 bg-white border-t border-gh-border py-2.5 px-6 -mx-6 -mb-6 flex items-center justify-end gap-2 rounded-b-md">
                 <button
                   type="button"
                   onclick={() => (isEditingBody = false)}
@@ -501,12 +501,12 @@
             <span>Table of contents</span>
           </div>
 
-          <div class="flex flex-col gap-0.5 max-h-[50vh] overflow-y-auto">
+          <div class="flex flex-col gap-0.5 max-h-[50vh] overflow-y-auto min-h-0">
             {#each tocHeaders as h, idx}
               <button
                 type="button"
                 onclick={() => scrollToHeading(h.id, idx)}
-                class="text-left text-gh-muted hover:text-gh-link truncate cursor-pointer transition-colors leading-snug py-0.5"
+                class="text-left text-gh-muted hover:text-gh-link truncate cursor-pointer transition-colors leading-snug py-0.5 shrink-0"
                 style="padding-left: {(h.level - minTocLevel) * 12}px;"
                 title={h.text}
               >
